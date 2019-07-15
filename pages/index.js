@@ -2,6 +2,7 @@ import React from 'react'
 import Router from 'next/router'
 import Layout from '../components/layout'
 import Session from '../utils/session'
+import Link from 'next/link'
 import { Row, Col, Form, FormGroup, Label, Input, Button } from 'reactstrap';
 
 export default class extends React.Component {
@@ -99,53 +100,46 @@ export default class extends React.Component {
   }
 
   render() {
-    
+
     const alert = (this.state.message === null) ? <div /> : <div className={`alert ${this.state.messageStyle}`} role="alert">{this.state.message}</div>
 
     if (this.props.session.loggedin) {
       return (
         <Layout {...this.props}>
-          <Row className="text-center">
-            <Col>
-              <h1 className="display-2">Your Account</h1>
+          <Row className="mt-1 text-center">
+            <Col xs="8" >
+              <h1 className=" display-4">Bienvenido {this.state.name} </h1>
+              <hr className="mt-3" />
+              <h2>Sistema de Votacion Movil</h2>
+              <h5>Tus reesponsabilidades como admin seran:</h5>
+              <Row>
+                <Col xs="4">
+                  <span style={{ fontSize: '200px' }} className="icon ion-md-bookmarks"></span>
+                  <p className=" text-muted">
+                    Gestiona los <Link href="#"><a className='text-muted font-weight-bold'>procesos</a></Link> y los <a className='text-muted font-weight-bold' href='#'>participantes</a>.
+                    </p>
+                </Col>
+                <Col xs="4">
+                <span style={{ fontSize: '200px' }} className="icon ion-md-filing"></span>
+                  <p className=" text-muted">
+                    Edita las <a className='text-muted font-weight-bold' href='#'>listas</a> y sus <a className='text-muted font-weight-bold' href='#'>candidatos</a>.
+                    </p>
+                </Col>
+                <Col xs="4">
+                <span style={{ fontSize: '200px' }} className="icon ion-md-stats"></span>
+                  <p className=" text-muted">
+                    Consulta las  <a className='text-muted font-weight-bold' href='#'>estadisticas</a> del proceso.
+                    </p>
+                </Col>
+              </Row>
+            </Col>
+            <Col xs="4" >
+              <img style={{ height: '40vw' }} src="../static/Phone-1.1.png" className="img-responsive" alt="Online" />
+              <p className=" text-muted">
+                Para descargar la apk, haga click <a className='font-weight-bold' href='#'>aqui</a>.
+              </p>
             </Col>
           </Row>
-          <Row className="mt-4 text-center">
-            <Col xs="12" sm={{ size: 8, offset: 2 }}>
-              <h2>Edit your profile</h2>
-              <p className="lead text-muted">
-                Here you can update basic information for your profile.
-              </p>
-              <Form onSubmit={this.setProfile}>
-                <FormGroup row>
-                  <Label xs={2} for="userName">Name:</Label>
-                  <Col xs={10}>
-                    <Input name="name" id="userName" value={this.state.name} onChange={this.handleChange} />
-                  </Col>
-                </FormGroup>
-                <FormGroup row>
-                  <Label xs={2} for="userAddress">Address:</Label>
-                  <Col xs={10}>
-                    <Input name="address" id="userAddress" value={this.state.address} onChange={this.handleChange} />
-                  </Col>
-                </FormGroup>
-                <Button className="mb-3" type="submit">Update</Button>
-              </Form>
-              {alert}
-            </Col>
-          </Row>
-          {/* <Row className="mt-4 mb-1 text-center">
-            <Col>
-              <h2>Delete your account</h2>
-              <p className="lead text-muted">
-                If you delete your account it will be erased immediately.
-                You can sign up again at any time.
-              </p>
-              <Form method="post" action="/auth/delete">
-                <Button type="submit" color="outline-danger"><span className="icon ion-md-trash mr-1"></span> Delete Account</Button>
-              </Form>
-            </Col>
-          </Row> */}
         </Layout>
       )
     } else {
