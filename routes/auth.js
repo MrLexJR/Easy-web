@@ -1,4 +1,4 @@
-const pool = require('../dbconfig/dbconfig')
+//(const pool = require('../dbconfig/dbconfig')
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 
