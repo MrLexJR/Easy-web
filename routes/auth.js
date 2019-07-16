@@ -87,13 +87,13 @@ module.exports = (server) => {
     }
   })
 
-  async function updateUser(body, email) {
-    try {
-      const results = await pool.query(`UPDATE users SET name='${body.name}', address='${body.address}' WHERE email='${email}';`)
-      return results
-    } catch (e) {
-      console.error(e)
-    }
-  }
+  // async function updateUser(body, email) {
+  //   try {
+  //     const results = await pool.query(`UPDATE users SET name='${body.name}', address='${body.address}' WHERE email='${email}';`)
+  //     return results
+  //   } catch (e) {
+  //     console.error(e)
+  //   }
+  // }
 
 }

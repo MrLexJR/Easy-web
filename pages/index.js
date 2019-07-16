@@ -114,19 +114,19 @@ export default class extends React.Component {
               <h5>Tus reesponsabilidades como admin seran:</h5>
               <Row>
                 <Col xs="4">
-                  <span style={{ fontSize: '200px' }} className="icon ion-md-bookmarks"></span>
+                  <span style={{ fontSize: '15vw' }} className="icon ion-md-bookmarks"></span>
                   <p className=" text-muted">
                     Gestiona los <Link href="#"><a className='text-muted font-weight-bold'>procesos</a></Link> y los <a className='text-muted font-weight-bold' href='#'>participantes</a>.
                     </p>
                 </Col>
                 <Col xs="4">
-                <span style={{ fontSize: '200px' }} className="icon ion-md-filing"></span>
+                  <span style={{ fontSize: '15vw' }} className="icon ion-md-filing"></span>
                   <p className=" text-muted">
                     Edita las <a className='text-muted font-weight-bold' href='#'>listas</a> y sus <a className='text-muted font-weight-bold' href='#'>candidatos</a>.
                     </p>
                 </Col>
                 <Col xs="4">
-                <span style={{ fontSize: '200px' }} className="icon ion-md-stats"></span>
+                  <span style={{ fontSize: '15vw' }} className="icon ion-md-stats"></span>
                   <p className=" text-muted">
                     Consulta las  <a className='text-muted font-weight-bold' href='#'>estadisticas</a> del proceso.
                     </p>
