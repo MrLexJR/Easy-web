@@ -116,7 +116,7 @@ export default class extends React.Component {
                 <Col xs="4">
                   <span style={{ fontSize: '15vw' }} className="icon ion-md-bookmarks"></span>
                   <p className=" text-muted">
-                    Gestiona los <Link href="#"><a className='text-muted font-weight-bold'>procesos</a></Link> y los <a className='text-muted font-weight-bold' href='#'>participantes</a>.
+                    Gestiona los <Link href="/process"><a className='text-muted font-weight-bold'>procesos</a></Link> y los <a className='text-muted font-weight-bold' href='#'>participantes</a>.
                     </p>
                 </Col>
                 <Col xs="4">

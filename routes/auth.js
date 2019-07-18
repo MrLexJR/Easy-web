@@ -22,8 +22,6 @@ module.exports = (server) => {
         } else {
           return res.json({ message: 'Incorrect Password!' })
         }
-
-
       } else {
         return res.json({ message: 'Datos Erroneos' })
       }
@@ -37,6 +35,10 @@ module.exports = (server) => {
     const dt = await fetch(url, { method: 'GET' })
       .then(function (response) {
         return response.json();
+      })
+      .catch(error => {
+        console.error('Error:')
+        return null
       })
     return dt
   }

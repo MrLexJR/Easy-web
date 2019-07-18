@@ -73,7 +73,7 @@ export default class extends React.Component {
       password: this.state.password
     }
 
-     
+
     fetch('auth/login', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -106,44 +106,34 @@ export default class extends React.Component {
   render() {
 
     const alert = (this.state.message === null) ? <div /> : <div className={`alert alert-danger`} role="alert">{this.state.message}</div>
-    if (this.props.session.loggedin) {
-      return (
-        <Layout {...this.props}>
-          <p className="lead text-center mt-5 mb-5">
-            <Link href="/"><a>Manage your profile</a></Link>
-          </p>
-        </Layout>
-      )
-    } else {
-      return (
-        <Layout {...this.props}>
-          <Row className="mt-5">
-            <Col xs="12" sm={{ size: 8, offset: 2 }} md={{ size: 6, offset: 3 }}>
-              <Card>
-                <CardHeader><span className="icon ion-md-person mr-2"></span>Login</CardHeader>
-                <CardBody>
-                  <Form onSubmit={this.handleLogin}>
-                    <FormGroup>
-                      <Label for="userEmail">Correo Institucional</Label>
-                      <Input type="text" name="email" id="userEmail" placeholder="example@domain.com" value={this.state.email} onChange={this.handleEmailChange} />
-                    </FormGroup>
-                    <FormGroup>
-                      <Label for="userPassword">Contraseña</Label>
-                      <Input type="password" name="password" id="userPassword" placeholder="" value={this.state.password} onChange={this.handlePasswordChange} />
-                    </FormGroup>
-                    <Button type="submit">Login</Button>
-                  </Form>
-                </CardBody>
-              </Card>
-              <br />
-              {alert}
-            </Col>
-          </Row>
-          <p className="text-center lead">
-            Solo para <Link href="#"><a>admins</a></Link> Gracias..
+    return (
+      <Layout {...this.props}>
+        <Row className="mt-5">
+          <Col xs="12" sm={{ size: 8, offset: 2 }} md={{ size: 6, offset: 3 }}>
+            <Card>
+              <CardHeader><span className="icon ion-md-person mr-2"></span>Login</CardHeader>
+              <CardBody>
+                <Form onSubmit={this.handleLogin}>
+                  <FormGroup>
+                    <Label for="userEmail">Correo Institucional</Label>
+                    <Input type="email" name="email" id="userEmail" placeholder="example@domain.com" value={this.state.email} onChange={this.handleEmailChange} />
+                  </FormGroup>
+                  <FormGroup>
+                    <Label for="userPassword">Contraseña</Label>
+                    <Input type="password" name="password" id="userPassword" placeholder="" value={this.state.password} onChange={this.handlePasswordChange} />
+                  </FormGroup>
+                  <Button type="submit">Login</Button>
+                </Form>
+              </CardBody>
+            </Card>
+            <br />
+            {alert}
+          </Col>
+        </Row>
+        <p className="text-center lead">
+          Solo para <Link href="#"><a>admins</a></Link> Gracias..
         </p>
-        </Layout>
-      )
-    }
+      </Layout>
+    )
   }
 }
