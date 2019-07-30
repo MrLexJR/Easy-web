@@ -73,7 +73,6 @@ export default class extends React.Component {
       password: this.state.password
     }
 
-
     fetch('auth/login', {
       method: 'POST',
       body: JSON.stringify(data),

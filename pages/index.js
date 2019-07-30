@@ -36,11 +36,9 @@ export default class extends React.Component {
       message: null,
       messageStyle: null
     }
-    this.handleChange = this.handleChange.bind(this)
-    this.setProfile = this.setProfile.bind(this)
   }
-  async componentDidMount() {
-    this.getProfile()
+  componentDidMount() {
+    this.getProfile();
   }
 
   getProfile() {
@@ -49,55 +47,15 @@ export default class extends React.Component {
     })
       .then(res => res.json())
       .then(response => {
-        if (!response.name || !response.cedula) return
+        if (!response.name || !response.address) return
         this.setState({
           name: response.name,
-          address: response.cedula
+          address: response.address
         })
       })
   }
 
-  handleChange(event) {
-    this.setState({
-      [event.target.name]: event.target.value
-    })
-  }
-
-  async setProfile(e) {
-    e.preventDefault()
-
-    this.setState({
-      message: null,
-      messageStyle: null
-    })
-
-    const data = {
-      name: this.state.name,
-      address: this.state.address
-    }
-
-    fetch('/auth/update', {
-      method: 'POST',
-      body: JSON.stringify(data),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
-      .then(async res => {
-        if (res.status === 200) {
-          this.getProfile()
-          this.setState({
-            message: 'Profile have been saved!',
-            messageStyle: 'alert-success'
-          })
-        } else {
-          this.setState({
-            message: 'Failed to save profile',
-            messageStyle: 'alert-danger'
-          })
-        }
-      })
-  }
+  
 
   render() {
 
@@ -111,7 +69,7 @@ export default class extends React.Component {
               <h1 className=" display-4">Bienvenido {this.state.name} </h1>
               <hr className="mt-3" />
               <h2>Sistema de Votacion Movil</h2>
-              <h5>Tus reesponsabilidades como admin seran:</h5>
+              <h5>Tus responsabilidades como admin seran:</h5>
               <Row>
                 <Col xs="4">
                   <span style={{ fontSize: '15vw' }} className="icon ion-md-bookmarks"></span>

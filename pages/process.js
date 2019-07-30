@@ -3,150 +3,162 @@ import Router from 'next/router'
 import Layout from '../components/layout'
 import Session from '../utils/session'
 import $ from 'jquery'
-import Link from 'next/link'
 import { Container, Row, Col, Form, FormGroup, Label, Input, Button, Card, Table, CardBody } from 'reactstrap';
+import Swal from 'sweetalert2'
+import withReactContent from 'sweetalert2-react-content'
+const MySwal = withReactContent(Swal)
+
+
 
 export default class extends React.Component {
-	static async getInitialProps({ req, res }) {
-		let props = {
-			session: ''
-		}
-		if (req && req.session) {
-			props.session = req.session
-		} else {
-			props.session = await Session.getSession()
-		}
-		if (!props.session || !props.session.loggedin) {
-			if (req) {
-				res.redirect('/login')
-			} else {
-				Router.push('/login')
-			}
-		}
-		return props
-	}
-	constructor(props) {
-		super(props)
-		this.state = {
-			proc_name: '',
-			proc_tipo: 'Escoger',
-			message: null,
-			messageStyle: null
-		}
-		this.saveProcess = this.saveProcess.bind(this)
-		this.handleProcessData = this.handleProcessData.bind(this)
-	}
-	async componentDidMount() {
-		this.getProfile()
-	}
+  static async getInitialProps({ req, res }) {
+    let props = {
+      session: ''
+    }
+    if (req && req.session) {
+      props.session = req.session
+    } else {
+      props.session = await Session.getSession()
+    }
+    if (!props.session || !props.session.loggedin) {
+      if (req) {
+        res.redirect('/login')
+      } else {
+        Router.push('/login')
+      }
+    }
+    return props
+  }
+  constructor(props) {
+    super(props)
+    this.state = {
+      name: '', address: '', rows_proceso: [],
+      proc_name: '', proc_tipo: 0, proc_periodo: 0, proc_fec_vot: '',
+      message: null, messageStyle: null
+    }
+    this.saveProcess = this.saveProcess.bind(this)
+    this.handleProcessData = this.handleProcessData.bind(this)
+    this.handleProcesUpd = this.handleProcesUpd.bind(this)
+  }
 
-	saveProcess(event) {
-		event.preventDefault()
-		this.setState({
-			message: null
-		})
-		console.log([this.state.proc_name], [this.state.proc_tipo])
-		if (!this.state.proc_name || this.state.proc_tipo == 'Escoger') {
-			this.setState({
-				message: 'Error!',
-				messageStyle: 'alert-danger'
-			})
-			return
-		}
-	}
+  saveProcess(event) {
+    event.preventDefault()
+    this.setState({
+      message: null
+    })
+    console.log(this.state.rows_proceso.find(x => x.status === 1));
+    if (!this.state.proc_name || !this.state.proc_tipo || !this.state.proc_periodo || !this.state.proc_fec_vot) {
+      this.setState({
+        message: 'Complete todos los campos!',
+        messageStyle: 'alert-warning'
+      })
+      return
+    }
+    
+    if(this.state.rows_proceso.find(x => x.status === 1)){
+      this.setState({
+        message: 'Solo puede tener un proceso activo',
+        messageStyle: 'alert-danger'
+      })
+      return
+    }
+    
+    let data = {
+      nombre: this.state.proc_name, tipo: parseInt(this.state.proc_tipo),
+      dia_v: this.state.proc_fec_vot, periodo: this.state.proc_periodo
+    }
+    fetch('auth/saveProceso', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+      .then(res => res.json())
+      .then(res => {
+        if (res) {
+          this.setState({
+            message: res.message,
+            messageStyle: res.messageStyle
+          })
+          if (res.staus == 200) {
+            this.getProceso();
+            Swal.fire('Genial!', 'Proceso ' + this.state.proc_name + ' agregado excitosamente!', 'success')
+          }
+        } else {
+          this.setState({
+            message: 'Error al intentar guardar',
+            messageStyle: 'alert-danger'
+          })
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error)
+        this.setState({
+          message: 'Request Failed!',
+          messageStyle: 'alert-danger'
+        })
+      })
+  }
 
-	handleProcessData(e) {
-		const name = e.target.name;
-		const value = e.target.value;
-		this.setState({ [name]: value });
-	}
+  handleProcesUpd = (idx) => () => {
+    let data = {
+      cedula: idx.id_proceso
+    }
+    MySwal.fire({
+      title: <p>¿Estas seguro?</p>,
+      text: "¡Deseas cambiar de estado del Proceso!",
+      type: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Si, terminarlo!',
+    }).then((result) => {
+      if (result.value) {
+        Swal.fire('Listo!', 'El proceso ha terminado', 'success')
+      }
+    })
+  }
 
-	getProfile() {
-		fetch('/auth/profile', {
-			credentials: 'include'
-		})
-			.then(res => res.json())
-			.then(response => {
-				if (!response.name || !response.cedula) return
-				this.setState({
-					name: response.name,
-				})
-			})
-	}
+  getProceso() {
+    fetch('/auth/getProceso', {
+      credentials: 'include'
+    })
+      .then(res => res.json())
+      .then(response => {
+        if (!response) return
+        this.setState({
+          rows_proceso: response.results
+        })
+      })
+  }
 
-	render() {
-		const alert = (this.state.message === null) ? <div /> : <div className={`text-center alert ${this.state.messageStyle}`} role="alert">{this.state.message}</div>
-		return (
-			<Layout {...this.props}>
-				<Row>
-					<Col>
-						<h1 className=" display-4"> Proceso Electoral </h1>
-						<Row className="mt-4">
-							<Col sm={{ size: 10, offset: 1 }} >
-								<Card>
-									<CardBody>
-										<Form onSubmit={this.saveProcess}>
-											<FormGroup row>
-												<Label md={10}><h4> Administrar Proceso Electoral </h4></Label>
-												<Col md={2}>
-													<Button className='btn-block' color="success" type="submit">
-														Guardar{' '}<span className="icon ion-md-save"></span>
-													</Button>
-												</Col>
-											</FormGroup>
-											<Row>
-												<Col md="7"> <FormGroup row>
-													<Label md={3} for="proc_name">Nombre</Label>
-													<Col md={9}>
-														<Input type="text" id="proc_name" name="proc_name" placeholder="Ingrese el nombre" value={this.state.email} onChange={this.handleProcessData} />
-													</Col>
-												</FormGroup>
-												</Col>
-												<Col md="5"> <FormGroup row>
-													<Label md={3} for="proc_tipo">Tipo</Label>
-													<Col md={9}>
-														<Input type="select" name="proc_tipo" id="proc_tipo" defaultValue={this.state.proc_tipo} onChange={this.handleProcessData} >
-															<option value="Escoger" disabled>Escojer...</option>
-															<option value="E_lista">Elecciones por Lista</option>
-															<option value="E_indiv">Elecciones individaules</option>
-														</Input>
-													</Col>
-												</FormGroup></Col>
-												<Col md="7"> <FormGroup row>
-													<Label md={3} for="proc_fec_vot">Fecha</Label>
-													<Col md={9}>
-														<Input type="text" name="proc_fec_vot" id="proc_fec_vot" defaultValue={new Date().getDate() +'/'+ [new Date().getMonth()+1] +'/'+ new Date().getFullYear() } />
-													</Col>
-												</FormGroup></Col>
-											</Row>
-										</Form>
-									</CardBody>
-								</Card>
-								< Process_table />
-								<br />
-								{alert}
-								<p className="text-center lead mt-2">
-									Ud es {this.state.name} el best del sistema
-						</p>
-							</Col>
-						</Row>
-					</Col>
-				</Row>
-			</Layout>
-		)
-	}
-}
+  renderTableProceso() {
+    if (this.state.rows_proceso.length > 0) {
+      return this.state.rows_proceso.map((row) => {
+        const { id_proceso, nombre, tipo, periodo, status } = row
+        const estado = (status === 1) ? <a href='#' onClick={this.handleProcesUpd(row)} className="badge badge-success">Activo</a> : <a href='#' className="badge  badge-secondary">Culminado</a>;
+        return (
+          <tr key={id_proceso} id={id_proceso}>
+            <td >{nombre}</td>
+            <td >{tipo}</td>
+            <td >{periodo}</td>
+            <td>{estado}</td>
+          </tr>
+        )
+      })
+    } else {
+      return (
+        <tr key={0}><td className='text-center' colSpan="4">No hay datos</td></tr>
+      )
+    }
 
+  }
 
-export class Process_table extends React.Component {
-	constructor(props) {
-		super(props)
-		this.state = {
-			seacrh: '',
-		};
-		this.handleTable = this.handleTable.bind(this)
-	}
-	componentDidMount() {
+  async componentDidMount() {
+    this.getProfile();
+    this.getProceso();
+
     // Jquery here $(...)...
     $(document).ready(function () {
       $("#myInput").on("keyup", function () {
@@ -155,50 +167,113 @@ export class Process_table extends React.Component {
           $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
         });
       });
-      $("#r1, #r2, #r3, #r4").click(function () {
-        var row = $(this).closest("tr");    // Find the row
-        console.log(row[0].innerText);
-      });
     });
   }
 
-	handleTable(e) {
-		const name = e.target.name;
-		const value = e.target.value;
-		this.setState({ [name]: value });
-	}
+  handleProcessData(e) {
+    const name = e.target.name;
+    const value = e.target.value;
+    this.setState({ [name]: value });
+  }
 
-	render() {
-		return (
-			<Container className="mt-2" >
-				<FormGroup className="mb-2 mr-sm-2 mb-sm-0">
-					<Input onChange={this.handleTable}  name="seacrh" className="my-2" id="myInput" type="text" placeholder="Buscar.." />{''}
-				</FormGroup>
-				<Table responsive hover className='Tab_Doc' >
-					<thead>
-						<tr>
-							<th>Nombre</th>
-							<th>Tipo</th>
-							<th>Ganador</th>
-							<th>Periodo</th>
-						</tr>
-					</thead>
-					<tbody id="myTable">
-						<tr id='r1' >
-							<td>Consejo Universitario</td>
-							<td>Elecciones por lista</td>
-							<td>Carlos Iza<br />EXU LISTA 3</td>
-							<td>Agosto 2018 <br /> Enero 2019</td>
-						</tr>
-						<tr id='r2' >
-							<td>Reina de la FCI</td>
-							<td>Elecciones individaules</td>
-							<td>Cinthya Briones</td>
-							<td>Agosto 2018 <br /> Enero 2019</td>
-						</tr>
-					</tbody>
-				</Table>
-			</Container>
-		)
-	}
+  getProfile() {
+    fetch('/auth/profile', {
+      credentials: 'include'
+    })
+      .then(res => res.json())
+      .then(response => {
+        if (!response.name || !response.address) return
+        this.setState({
+          name: response.name,
+          address: response.address
+        })
+      })
+  }
+
+  render() {
+    const alert = (this.state.message === null) ? <div /> : <div className={`text-center alert ${this.state.messageStyle}`} role="alert">{this.state.message}</div>
+    return (
+      <Layout {...this.props}>
+        <Row>
+          <Col>
+            <h1 className=" display-4"> Proceso Electoral </h1>
+            <Row className="mt-4">
+              <Col sm={{ size: 10, offset: 1 }} >
+                <Card className='m-1'>
+                  <CardBody>
+                    <Form onSubmit={this.saveProcess}>
+                      <FormGroup row>
+                        <Label md={10}><h4> Administrar Proceso Electoral </h4></Label>
+                        <Col md={2}>
+                          <Button className='btn-block' color="success" type="submit">
+                            Guardar{' '}<span className="icon ion-md-save"></span>
+                          </Button>
+                        </Col>
+                      </FormGroup>
+                      <Row>
+                        <Col md="7"> <FormGroup row>
+                          <Label md={3} for="proc_name">Nombre</Label>
+                          <Col md={9}>
+                            <Input type="text" id="proc_name" name="proc_name" placeholder="Ingrese el nombre" value={this.state.email} onChange={this.handleProcessData} />
+                          </Col>
+                        </FormGroup>
+                        </Col>
+                        <Col md="5"> <FormGroup row>
+                          <Label md={3} for="proc_tipo">Tipo</Label>
+                          <Col md={9}>
+                            <Input type="select" name="proc_tipo" id="proc_tipo" defaultValue={this.state.proc_tipo} onChange={this.handleProcessData} >
+                              <option value={0} disabled>Escojer...</option>
+                              <option value={1}>Elecciones por Lista</option>
+                              <option value={2}>Elecciones individaules</option>
+                            </Input>
+                          </Col>
+                        </FormGroup></Col>
+                        <Col md="7"> <FormGroup row>
+                          <Label md={3} for="proc_fec_vot">Fecha</Label>
+                          <Col md={9}>
+                            {/* <Input type="text" name="proc_fec_vot" id="proc_fec_vot" defaultValue={new Date().getDate() +'/'+ [new Date().getMonth()+1] +'/'+ new Date().getFullYear() } /> */}
+                            <Input type="date" name="proc_fec_vot" id="proc_fec_vot" placeholder="date placeholder" onChange={this.handleProcessData} />
+                          </Col>
+                        </FormGroup></Col>
+                        <Col md="5"> <FormGroup row>
+                          <Label md={3} for="proc_periodo">Periodo</Label>
+                          <Col md={9}>
+                            <Input type="select" name="proc_periodo" id="proc_periodo" defaultValue={this.state.proc_periodo} onChange={this.handleProcessData} >
+                              <option value={0} disabled>Escojer...</option>
+                              <option value={1}>Abril - Agosto 2019</option>
+                            </Input>
+                          </Col>
+                        </FormGroup></Col>
+                      </Row>
+                    </Form>
+                  </CardBody>
+                </Card>
+                {alert}
+                <Container className="mt-2" >
+                  <FormGroup className="mb-2 mr-sm-2 mb-sm-0">
+                    <Input onChange={this.handleTable} name="seacrh" className="my-2" id="myInput" type="text" placeholder="Buscar.." />{''}
+                  </FormGroup>
+                  <Table responsive hover className='Tab_Doc' >
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Tipo</th>
+                        <th>Periodo</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody id="myTable">
+                      {this.renderTableProceso()}
+                    </tbody>
+                  </Table>
+                </Container>
+                <p className="text-center lead m-2">Ud es {this.state.name} el best del sistema</p>
+              </Col>
+            </Row>
+          </Col>
+        </Row>
+      </Layout>
+    )
+  }
 }
+
