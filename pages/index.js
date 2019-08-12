@@ -58,9 +58,7 @@ export default class extends React.Component {
   
 
   render() {
-
     const alert = (this.state.message === null) ? <div /> : <div className={`alert ${this.state.messageStyle}`} role="alert">{this.state.message}</div>
-
     if (this.props.session.loggedin) {
       return (
         <Layout {...this.props}>
@@ -80,7 +78,7 @@ export default class extends React.Component {
                 <Col xs="4">
                   <span style={{ fontSize: '15vw' }} className="icon ion-md-filing"></span>
                   <p className=" text-muted">
-                    Edita las <a className='text-muted font-weight-bold' href='#'>listas</a> y sus <a className='text-muted font-weight-bold' href='#'>candidatos</a>.
+                    Edita las <a className='text-muted font-weight-bold' href='/lista'>listas</a> y sus <a className='text-muted font-weight-bold' href='/candidatos'>candidatos</a>.
                     </p>
                 </Col>
                 <Col xs="4">

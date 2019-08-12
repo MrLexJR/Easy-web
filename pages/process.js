@@ -8,8 +8,6 @@ import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
 const MySwal = withReactContent(Swal)
 
-
-
 export default class extends React.Component {
   static async getInitialProps({ req, res }) {
     let props = {
@@ -33,7 +31,7 @@ export default class extends React.Component {
     super(props)
     this.state = {
       name: '', address: '', rows_proceso: [],
-      proc_name: '', proc_tipo: 0, proc_periodo: 0, proc_fec_vot: '',
+      proc_name: '', proc_tipo: 0, proc_periodo: 0, proc_fec_vot: '', proc_hor_inicio: '', proc_hor_fin: '',
       message: null, messageStyle: null
     }
     this.saveProcess = this.saveProcess.bind(this)
@@ -43,29 +41,28 @@ export default class extends React.Component {
 
   saveProcess(event) {
     event.preventDefault()
-    this.setState({
-      message: null
-    })
-    console.log(this.state.rows_proceso.find(x => x.status === 1));
-    if (!this.state.proc_name || !this.state.proc_tipo || !this.state.proc_periodo || !this.state.proc_fec_vot) {
-      this.setState({
-        message: 'Complete todos los campos!',
-        messageStyle: 'alert-warning'
-      })
+    this.setState({ message: null, messageStyle: null })
+    if (!this.state.proc_name || !this.state.proc_tipo || !this.state.proc_periodo || !this.state.proc_fec_vot || !this.state.proc_hor_inicio || !this.state.proc_hor_fin) {
+      this.setState({ message: 'Complete todos los campos!', messageStyle: 'alert-warning' })
       return
     }
-    
-    if(this.state.rows_proceso.find(x => x.status === 1)){
+    if (this.state.proc_hor_inicio >= this.state.proc_hor_fin) {
+      this.setState({ message: 'Las horas deben ser validad', messageStyle: 'alert-warning' })
+      return
+    }
+
+    if (this.state.rows_proceso.find(x => x.status === 1)) {
       this.setState({
         message: 'Solo puede tener un proceso activo',
         messageStyle: 'alert-danger'
       })
       return
     }
-    
+
     let data = {
-      nombre: this.state.proc_name, tipo: parseInt(this.state.proc_tipo),
-      dia_v: this.state.proc_fec_vot, periodo: this.state.proc_periodo
+      nombre: this.state.proc_name, tipo: this.state.proc_tipo,
+      dia_v: this.state.proc_fec_vot, periodo: this.state.proc_periodo,
+      hora_i: this.state.proc_hor_inicio, hora_f: this.state.proc_hor_fin
     }
     fetch('auth/saveProceso', {
       method: 'POST',
@@ -83,7 +80,7 @@ export default class extends React.Component {
           })
           if (res.staus == 200) {
             this.getProceso();
-            Swal.fire('Genial!', 'Proceso ' + this.state.proc_name + ' agregado excitosamente!', 'success')
+            Swal.fire('Genial!', 'Proceso ' + this.state.proc_name + ' agregado excitosamente! <br/> Desea agregar las <a href="/lista">listas</a> del proceso.', 'success')
           }
         } else {
           this.setState({
@@ -103,7 +100,7 @@ export default class extends React.Component {
 
   handleProcesUpd = (idx) => () => {
     let data = {
-      cedula: idx.id_proceso
+      id_proceso: idx.id_proceso
     }
     MySwal.fire({
       title: <p>¿Estas seguro?</p>,
@@ -115,7 +112,31 @@ export default class extends React.Component {
       confirmButtonText: 'Si, terminarlo!',
     }).then((result) => {
       if (result.value) {
-        Swal.fire('Listo!', 'El proceso ha terminado', 'success')
+        fetch('auth/updateProceso', {
+          method: 'POST',
+          body: JSON.stringify(data),
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+          .then(res => res.json())
+          .then(res => {
+            if (res) {
+              if (res.staus == 200) {
+                Swal.fire('Listo!', 'El proceso ha terminado', 'success')
+                this.getProceso();
+              }
+            } else {
+              Swal.fire('Error', 'Hubon un error!: ', 'error')
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error)
+            this.setState({
+              message: 'Request Failed!',
+              messageStyle: 'alert-danger'
+            })
+          })
       }
     })
   }
@@ -140,19 +161,18 @@ export default class extends React.Component {
         const estado = (status === 1) ? <a href='#' onClick={this.handleProcesUpd(row)} className="badge badge-success">Activo</a> : <a href='#' className="badge  badge-secondary">Culminado</a>;
         return (
           <tr key={id_proceso} id={id_proceso}>
-            <td >{nombre}</td>
-            <td >{tipo}</td>
-            <td >{periodo}</td>
-            <td>{estado}</td>
+            <td className="col-md-4" >{nombre}</td>
+            <td className="col-md-3" >{tipo}</td>
+            <td className="col-md-3">{periodo}</td>
+            <td className="col-md-2">{estado}</td>
           </tr>
         )
       })
     } else {
       return (
-        <tr key={0}><td className='text-center' colSpan="4">No hay datos</td></tr>
+        <tr key={0}><td className="col-md-12">No hay datos</td></tr>
       )
     }
-
   }
 
   async componentDidMount() {
@@ -171,8 +191,10 @@ export default class extends React.Component {
   }
 
   handleProcessData(e) {
+    var index = e.nativeEvent.target.selectedIndex;
+    if (index) var text_op = e.nativeEvent.target[index].text;
     const name = e.target.name;
-    const value = e.target.value;
+    const value = text_op || e.target.value;
     this.setState({ [name]: value });
   }
 
@@ -196,8 +218,7 @@ export default class extends React.Component {
       <Layout {...this.props}>
         <Row>
           <Col>
-            <h1 className=" display-4"> Proceso Electoral </h1>
-            <Row className="mt-4">
+            <Row className="mt-1">
               <Col sm={{ size: 10, offset: 1 }} >
                 <Card className='m-1'>
                   <CardBody>
@@ -211,37 +232,40 @@ export default class extends React.Component {
                         </Col>
                       </FormGroup>
                       <Row>
-                        <Col md="7"> <FormGroup row>
-                          <Label md={3} for="proc_name">Nombre</Label>
-                          <Col md={9}>
-                            <Input type="text" id="proc_name" name="proc_name" placeholder="Ingrese el nombre" value={this.state.email} onChange={this.handleProcessData} />
+                        <Col md="12"> <FormGroup row>
+                          <Label md={1} for="proc_name">Titulo</Label>
+                          <Col md={4}>
+                            <Input type="text" id="proc_name" name="proc_name" placeholder="Ingrese titulo del proceso" value={this.state.proc_name} onChange={this.handleProcessData} />
                           </Col>
-                        </FormGroup>
-                        </Col>
-                        <Col md="5"> <FormGroup row>
-                          <Label md={3} for="proc_tipo">Tipo</Label>
-                          <Col md={9}>
+                          <Label md={1} for="proc_tipo">Tipo</Label>
+                          <Col md={3}>
                             <Input type="select" name="proc_tipo" id="proc_tipo" defaultValue={this.state.proc_tipo} onChange={this.handleProcessData} >
                               <option value={0} disabled>Escojer...</option>
                               <option value={1}>Elecciones por Lista</option>
                               <option value={2}>Elecciones individaules</option>
                             </Input>
                           </Col>
-                        </FormGroup></Col>
-                        <Col md="7"> <FormGroup row>
-                          <Label md={3} for="proc_fec_vot">Fecha</Label>
-                          <Col md={9}>
-                            {/* <Input type="text" name="proc_fec_vot" id="proc_fec_vot" defaultValue={new Date().getDate() +'/'+ [new Date().getMonth()+1] +'/'+ new Date().getFullYear() } /> */}
-                            <Input type="date" name="proc_fec_vot" id="proc_fec_vot" placeholder="date placeholder" onChange={this.handleProcessData} />
-                          </Col>
-                        </FormGroup></Col>
-                        <Col md="5"> <FormGroup row>
-                          <Label md={3} for="proc_periodo">Periodo</Label>
-                          <Col md={9}>
+                          <Label md={1} for="proc_periodo">Ciclo</Label>
+                          <Col md={2}>
                             <Input type="select" name="proc_periodo" id="proc_periodo" defaultValue={this.state.proc_periodo} onChange={this.handleProcessData} >
                               <option value={0} disabled>Escojer...</option>
                               <option value={1}>Abril - Agosto 2019</option>
                             </Input>
+                          </Col>
+                        </FormGroup></Col>
+                        <Col md="12"> <FormGroup row>
+                          <Label md={1} for="proc_fec_vot">Fecha</Label>
+                          <Col md={4}>
+                            <Input type="date" name="proc_fec_vot" id="proc_fec_vot" onChange={this.handleProcessData} />
+                          </Col>
+                          <Label md={1} >Hora:</Label>
+                          <Label md={1} for="proc_hor_inicio" >Inicio</Label>
+                          <Col md={2}>
+                            <Input type="time" name="proc_hor_inicio" id="proc_hor_inicio" onChange={this.handleProcessData} />
+                          </Col>
+                          <Label md={1} for="proc_hor_fin" >Fin</Label>
+                          <Col md={2}>
+                            <Input type="time" name="proc_hor_fin" id="proc_hor_fin" onChange={this.handleProcessData} />
                           </Col>
                         </FormGroup></Col>
                       </Row>
@@ -253,19 +277,19 @@ export default class extends React.Component {
                   <FormGroup className="mb-2 mr-sm-2 mb-sm-0">
                     <Input onChange={this.handleTable} name="seacrh" className="my-2" id="myInput" type="text" placeholder="Buscar.." />{''}
                   </FormGroup>
-                  <Table responsive hover className='Tab_Doc' >
+                  <table className='table table-hover table-fixed Tab_Doc' >
                     <thead>
                       <tr>
-                        <th>Nombre</th>
-                        <th>Tipo</th>
-                        <th>Periodo</th>
-                        <th>Estado</th>
+                        <th className="col-md-4">Nombre</th>
+                        <th className="col-md-3">Tipo</th>
+                        <th className="col-md-3">Periodo</th>
+                        <th className="col-md-2">Estado</th>
                       </tr>
                     </thead>
                     <tbody id="myTable">
                       {this.renderTableProceso()}
                     </tbody>
-                  </Table>
+                  </table>
                 </Container>
                 <p className="text-center lead m-2">Ud es {this.state.name} el best del sistema</p>
               </Col>

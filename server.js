@@ -17,7 +17,7 @@ app.prepare().then(() => {
   server.use(session({
     secret: 'sesion1',
     resave: false,
-    cookie: { maxAge: 1 * 60 * 60 * 1000 },  // 8 hours
+    cookie: { maxAge: 5 * 60 * 60 * 1000 },  // 8 hours
     saveUninitialized: false
   }));
 
