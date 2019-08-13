@@ -31,7 +31,7 @@ export default class extends React.Component {
 	constructor(props) {
 		super(props)
 		this.state = {
-			rows_proceso: [], row_listas_a: [], row_lista_select: [],
+			rows_proceso: [], row_listas_a: [], row_lista_select: [], row_listas_candid: [],
 			lista_img: '/static/part_polit.png', selectedFile: null,
 			lista_name: '', lista_eslogan: '', lista_proceso: 0, lista_numero: 0,
 			message: null, messageStyle: null, modal: false,
@@ -48,7 +48,7 @@ export default class extends React.Component {
 
 	dignidadesLista = (idx) => () => {
 		this.setState({ row_lista_select: idx })
-		this.modalToggle();
+		this.modalToggle(); this.getListaCandi(idx.id_lista);
 	}
 
 	Clean = () => {
@@ -131,6 +131,19 @@ export default class extends React.Component {
 				if (!response) return
 				this.setState({ row_listas_a: response.results })
 			})
+	}
+
+	getListaCandi(id) {
+		let data = { id: id }
+		fetch('/auth/getListaCandi', {
+			method: 'POST', body: JSON.stringify(data),
+			headers: { 'Content-Type': 'application/json' }
+		})
+		.then(res => res.json())
+		.then(response => {
+			if (!response) return
+			this.setState({ row_listas_candid: response.results })
+		})
 	}
 
 	renderOptProceso() {
@@ -283,10 +296,10 @@ export class DignidadesModal extends React.Component {
 	constructor(props) {
 		super(props)
 		this.state = {
-			row_persona:[], id_persona: 0,
+			row_persona: [], id_persona: 0,
 			row_cargo_lis: [{ id: 1, nombre: 'Presidente' }, { id: 2, nombre: 'Vicepresidente' }, { id: 3, nombre: 'Secretario' }],
 		}
-	this.handleProcessData = this.handleProcessData.bind(this)
+		this.handleProcessData = this.handleProcessData.bind(this)
 	}
 
 	handleProcessData(e) {
@@ -306,34 +319,32 @@ export class DignidadesModal extends React.Component {
 
 	renderOptPersona() {
 		return this.state.row_persona.map((row) => {
-			const { id_persona, nombres,apellidos } = row
+			const { id_persona, nombres, apellidos } = row
 			return (<option key={id_persona} value={id_persona} >{nombres}{' '}{apellidos} </option>)
 		})
 	}
 
 	async componentDidMount() {
-		this.getPersona(); 
+		this.getPersona();
 	}
 
 	renderOpcDignid() {
+		const row_cad_l = this.props.state.row_listas_candid
 		return this.state.row_cargo_lis.map((row) => {
 			const { id, nombre } = row
+			const candid  = row_cad_l.find(x => x.cargo == nombre) 
+			const persona = (candid) ? candid.nombres+' '+ candid.apellidos : null;
+			const data = (persona) ? <span style={{ cursor: "pointer" }} className="text-info icon ion-md-settings" data-tip="Editar" />  : <span style={{ cursor: "pointer" }} className="text-info icon ion-md-person-add" data-tip="Agregar" /> ;
 			return (
 				<tr key={id} id={id}>
 					<td className="col-md-1">{id}</td>
-					<td className="col-md-5">
-						<Input type="select" id="id_persona" name="id_persona" value={this.state.id_persona} onChange={this.handleProcessData} >
-							<option value={0} disabled>Escojer...</option>
-							{this.renderOptPersona()}
-						</Input>
-					</td>
+					<td className="col-md-5">{persona}</td>
 					<td className="col-md-4">{nombre}</td>
 					<td className="col-md-2">
-					<h4 className="ml-2" >
-						<ReactTooltip place="top" effect="solid" />
-						<span  style={{ cursor: "pointer" }} className="text-success icon ion-md-checkmark-circle mr-2" data-tip="Listo" />
-						<span  style={{ cursor: "pointer" }} className="text-danger icon ion-md-close-circle mr-1" data-tip="Cancelar" />
-					</h4>
+						<h4 className="ml-3" >
+							<ReactTooltip place="top" effect="solid" />
+							{data}
+						</h4>
 					</td>
 				</tr>
 			)
@@ -355,7 +366,7 @@ export class DignidadesModal extends React.Component {
 								<Input name="seacrh" id="myInput" type="text" placeholder="Buscar.." />{''}
 							</Col>
 						</FormGroup> */}
-						<table className='table table-hover table-fixed ' >
+						<table className='table table-hover table-fixed' >
 							<thead>
 								<tr>
 									<th className="col-md-1">#</th>
