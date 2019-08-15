@@ -1,5 +1,6 @@
 import React from 'react'
 import Router from 'next/router'
+import Select from 'react-select'
 import Layout from '../components/layout'
 import Session from '../utils/session'
 import ReactTooltip from 'react-tooltip'
@@ -7,6 +8,7 @@ import $ from 'jquery'
 import { Container, Row, Col, Form, FormGroup, Label, Input, Button, Card, CardBody, Modal, ModalHeader, ModalBody, ModalFooter } from 'reactstrap';
 import Swal from 'sweetalert2'
 import withReactContent from 'sweetalert2-react-content'
+import { constants } from 'zlib';
 const MySwal = withReactContent(Swal)
 
 export default class extends React.Component {
@@ -31,10 +33,13 @@ export default class extends React.Component {
 	constructor(props) {
 		super(props)
 		this.state = {
-			rows_proceso: [], row_listas_a: [], row_lista_select: [], row_listas_candid: [],
+			rows_proceso: [], row_listas_a: [], row_lista_select: [], row_listas_candid: [], row_persona: [], options_cand: [], cand_bc: [],
+			row_cargo_lis: [{ id: 1, nombre: 'Presidente' }, { id: 2, nombre: 'Vicepresidente' }, { id: 3, nombre: 'Tesorero' }],
 			lista_img: '/static/part_polit.png', selectedFile: null,
-			lista_name: '', lista_eslogan: '', lista_proceso: 0, lista_numero: 0,
-			message: null, messageStyle: null, modal: false,
+			lista_name: '', lista_eslogan: '', lista_proceso: 0, nombre_proceso: '', lista_numero: '',
+			message: null, messageStyle: null, modal: false, showCandid: false,
+			selectedOption_Presi: null, selectedOption_VicePresi: null, selectedOption_Secre: null,
+			isDisabled1: true, isDisabled2: true, isDisabled3: true,
 		}
 		this.handleChangeImg = this.handleChangeImg.bind(this)
 		this.handleProcessData = this.handleProcessData.bind(this)
@@ -42,9 +47,38 @@ export default class extends React.Component {
 		this.updateLista = this.updateLista.bind(this)
 		this.deleteLista = this.deleteLista.bind(this)
 		this.modalToggle = this.modalToggle.bind(this)
+		this.handleChangePresi = this.handleChangePresi.bind(this)
+		this.handleChangeVice = this.handleChangeVice.bind(this)
+		this.handleChangeSecre = this.handleChangeSecre.bind(this)
 	}
 
 	modalToggle() { this.setState(prevState => ({ modal: !prevState.modal })); }
+
+	CerrarSelect = () =>{
+		this.setState({ showCandid: false });
+	}
+
+	CleanSelect = () => {
+		this.setState(state => ({ isDisabled1: false, isDisabled2: false, isDisabled3: false, selectedOption_Presi: null, selectedOption_VicePresi: null, selectedOption_Secre: null, }));
+		this.getPersona();  
+	}
+
+	handleChangePresi = selectedOption_Presi => {
+		this.setState({ selectedOption_Presi });
+		this.setState(state => ({ isDisabled1: !state.isDisabled1 }));
+		var index = this.state.options_cand.indexOf(selectedOption_Presi); const array = this.state.options_cand.slice(); array[index].isDisabled = true; this.setState({ options_cand: array });
+	};
+
+	handleChangeVice = selectedOption_VicePresi => {
+		this.setState({ selectedOption_VicePresi });
+		this.setState(state => ({ isDisabled2: !state.isDisabled2 }));
+		var index = this.state.options_cand.indexOf(selectedOption_VicePresi); const array = this.state.options_cand.slice(); array[index].isDisabled = true; this.setState({ options_cand: array });
+	};
+	handleChangeSecre = selectedOption_Secre => {
+		this.setState({ selectedOption_Secre });
+		this.setState(state => ({ isDisabled3: !state.isDisabled3 }));
+		var index = this.state.options_cand.indexOf(selectedOption_Secre); const array = this.state.options_cand.slice(); array[index].isDisabled = true; this.setState({ options_cand: array });
+	};
 
 	dignidadesLista = (idx) => () => {
 		this.setState({ row_lista_select: idx })
@@ -53,9 +87,10 @@ export default class extends React.Component {
 
 	Clean = () => {
 		document.getElementById("lista-data").reset();
+		document.getElementById('lista_name').removeAttribute("disabled");
 		this.setState({
 			lista_img: '/static/part_polit.png', selectedFile: null,
-			lista_name: '', lista_eslogan: '', lista_numero: 0,
+			lista_name: '', lista_eslogan: '', lista_numero: '',
 			message: null, messageStyle: null
 		});
 	}
@@ -63,32 +98,63 @@ export default class extends React.Component {
 	saveLista(event) {
 		event.preventDefault()
 		this.setState({ message: null, messageStyle: null })
-		// console.log(this.state.lista_img,this.state.selectedFile)
-		if (!this.state.lista_img || !this.state.lista_img || !this.state.lista_eslogan || !this.state.lista_proceso) {
-			this.setState({ message: 'Complete todos los campos!', messageStyle: 'alert-warning' })
-			return
-		}
-		let data = { lnombre: this.state.lista_name, leslogan: this.state.lista_eslogan, lproceso: parseInt(this.state.lista_proceso), lnumero: this.state.lista_numero, limagen: this.state.selectedFile }
-		fetch('auth/saveLista', {
-			method: 'POST',
-			body: JSON.stringify(data),
-			headers: { 'Content-Type': 'application/json' }
-		})
-			.then(res => res.json())
-			.then(res => {
-				if (res) {
-					this.setState({ message: res.message, messageStyle: res.messageStyle })
-					if (res.staus == 200) {
-						this.getLista();
-						Swal.fire('Genial!', 'La lista ' + this.state.lista_name + ' agregado excitosamente!', 'success')
-					}
-				} else { this.setState({ message: 'Error al intentar guardar', messageStyle: 'alert-danger' }) }
+		if (!this.state.showCandid) {
+			if (!this.state.lista_name || !this.state.lista_eslogan || !this.state.lista_numero) {
+				this.setState({ message: 'Complete todos los campos!', messageStyle: 'alert-warning' })
+				return
+			}
+			let data = { lnombre: this.state.lista_name, leslogan: this.state.lista_eslogan, lproceso: parseInt(this.state.lista_proceso), lnumero: parseInt(this.state.lista_numero), limagen: this.state.selectedFile }
+			fetch('auth/saveLista', {
+				method: 'POST',
+				body: JSON.stringify(data),
+				headers: { 'Content-Type': 'application/json' }
 			})
-			.catch(error => { this.setState({ message: 'Request Failed!', messageStyle: 'alert-danger' }) })
+				.then(res => res.json())
+				.then(res => {
+					if (res) {
+						this.setState({ message: res.message, messageStyle: res.messageStyle })
+						if (res.staus == 200) {
+							this.getLista();
+							this.setState({ showCandid: true }); this.CleanSelect();
+							document.getElementById('lista_name').setAttribute("disabled", "disabled");
+							Swal.fire('Genial!', 'La lista ' + this.state.lista_name + ' agregado excitosamente!', 'success')
+						}
+					} else { this.setState({ message: 'Error al intentar guardar', messageStyle: 'alert-danger' }) }
+				})
+				.catch(error => { this.setState({ message: 'Request Failed!', messageStyle: 'alert-danger' }) })
+		} else {
+			if (!this.state.selectedOption_Presi || !this.state.selectedOption_VicePresi || !this.state.selectedOption_Secre) { this.setState({ message: 'Complete todos las Dignidades', messageStyle: 'alert-warning' }); return }
+			var lista = this.state.row_listas_a.find(x => x.nombre === this.state.lista_name)
+			let data = [{ idcandidato: this.state.selectedOption_Presi.value, idproceso: parseInt(this.state.lista_proceso), idlista: lista.id_lista, cargo: 'Presidente' },
+			{ idcandidato: this.state.selectedOption_VicePresi.value, idproceso: parseInt(this.state.lista_proceso), idlista: lista.id_lista, cargo: 'Vicepresidente' },
+			{ idcandidato: this.state.selectedOption_Secre.value, idproceso: parseInt(this.state.lista_proceso), idlista: parseInt(lista.id_lista), cargo: 'Tesorero' }]
+			fetch('auth/saveCandidato', {
+				method: 'POST',
+				body: JSON.stringify(data),
+				headers: { 'Content-Type': 'application/json' }
+			})
+				.then(res => res.json())
+				.then(res => {
+					if (res) {
+						this.setState({ message: res.message, messageStyle: res.messageStyle })
+						if (res.staus == 200) {
+							this.Clean();this.CleanSelect();
+							Swal.fire('Listo!', 'Los Candidatos se han agregado excitosamente!', 'success')
+						}
+					} else { this.setState({ message: 'Error al intentar guardar', messageStyle: 'alert-danger' }); return }
+				})
+				.catch(error => { this.setState({ message: 'Request Failed!', messageStyle: 'alert-danger' }) })
+		}
 	}
 
 	updateLista = (idx) => () => {
-		console.log(idx)
+		console.log(idx.nombre)
+		this.setState( state => ( { lista_name: idx.nombre, lista_eslogan: idx.eslogan, lista_numero: idx.numero }));
+		// document.getElementById("lista_name").value = idx.nombre; 
+		// document.getElementById("lista_numero").value = idx.numero; 
+		// document.getElementById("lista_eslogan").value = idx.eslogan;
+		this.setState({ showCandid: true }); this.CleanSelect();
+		document.getElementById('lista_name').setAttribute("disabled", "disabled");
 	}
 
 	deleteLista = (idx) => () => {
@@ -97,7 +163,7 @@ export default class extends React.Component {
 
 	handleProcessData(e) {
 		const name = e.target.name;
-		const value = e.target.value;
+		const value = e.target.value.trim();
 		this.setState({ [name]: value });
 	}
 
@@ -112,9 +178,10 @@ export default class extends React.Component {
 			.then(res => res.json())
 			.then(response => {
 				if (!response) return
-				var c = response.results.find(x => x.status === 1 && x.tipo === 'Elecciones por Lista');
+				var x = response.results.find(x => x.status === 1 )
+				var c = response.results.find(x => x.status === 1 && x.tipo === 1);
 				var c1 = (c) ? c.id_proceso : 0;
-				this.setState({ rows_proceso: response.results, lista_proceso: c1 })
+				this.setState({ lista_proceso: c1, nombre_proceso: x.nombre })
 				if (c1 == 0) {
 					this.setState({ message: 'El proceso no admite listas o no hay proceso activo', messageStyle: 'alert-danger' })
 					document.getElementById("saveData").disabled = true;
@@ -139,22 +206,26 @@ export default class extends React.Component {
 			method: 'POST', body: JSON.stringify(data),
 			headers: { 'Content-Type': 'application/json' }
 		})
-		.then(res => res.json())
-		.then(response => {
-			if (!response) return
-			this.setState({ row_listas_candid: response.results })
-		})
+			.then(res => res.json())
+			.then(response => {
+				if (!response) return
+				this.setState({ row_listas_candid: response.results })
+			})
 	}
 
-	renderOptProceso() {
-		if (this.state.lista_proceso != 0) {
-			return this.state.rows_proceso.map((row) => {
-				const { id_proceso, status, nombre } = row
-				if (status === 1) { return (<option key={id_proceso} value={id_proceso} >{nombre}</option>) }
-				else { return (<option disabled key={id_proceso} value={id_proceso} >{nombre}</option>) }
+	getPersona() {
+		fetch('/auth/getPersonaCandidato', { credentials: 'include' })
+			.then(res => res.json())
+			.then(response => {
+				if (!response) return
+				this.setState({ row_persona: response.results, options_cand: [] })
+				response.results.map((row) => {
+					const { id_persona, nombres, apellidos } = row
+					const item = { value: id_persona, label: id_persona + ' - ' + nombres + ' ' + apellidos, data: nombres + ' ' + apellidos, isDisabled: false }
+					this.setState({ options_cand: [...this.state.options_cand, item] })
+				})
+
 			})
-		}
-		else { return (<option key={0} value={0} > Null </option>) }
 	}
 
 	renderTableProceso() {
@@ -167,7 +238,7 @@ export default class extends React.Component {
 						<td className="col-md-4">{nombre}</td>
 						<td className="col-md-4">{eslogan}</td>
 						<td className="col-md-2">
-							<h4 className="ml-1" >
+							<h4>
 								<ReactTooltip place="right" effect="solid" />
 								<span onClick={this.dignidadesLista(row)} style={{ cursor: "pointer" }} className="text-dark icon ion-ios-people mr-2" data-tip="Dignidades" />
 								<span onClick={this.updateLista(row)} style={{ cursor: "pointer" }} className="text-info icon ion-md-settings mr-2" data-tip="Editar" />
@@ -182,8 +253,7 @@ export default class extends React.Component {
 
 
 	async componentDidMount() {
-		this.getProceso();
-		this.getLista();
+		this.getProceso(); this.getLista(); this.getPersona();
 		window.onload = function () {
 			var fileupload = document.getElementById("imgPers");
 			var filePath = document.getElementById("spnFilePath");
@@ -211,6 +281,7 @@ export default class extends React.Component {
 		return (
 			<Layout {...this.props}>
 				<DignidadesModal state={this.state} modalToggle={this.modalToggle} />
+
 				<Row>
 					<Col>
 						<Row className="mt-2">
@@ -219,12 +290,7 @@ export default class extends React.Component {
 									<CardBody>
 										<Form id="lista-data" onSubmit={this.saveLista} >
 											<FormGroup row>
-												<Label md={10}><h4> Administrar Listas Electorales </h4></Label>
-												<Col md={2}>
-													<Button id='saveData' className='btn-block' color="success" type="submit">
-														Guardar{' '}<span className="icon ion-md-save"></span>
-													</Button>
-												</Col>
+												<Label md={10}><h4> Administrar Listas Electorales del Proceso <span className='text-info'>{this.state.nombre_proceso}</span> </h4></Label>
 											</FormGroup>
 											<Row>
 												<Col md="3">
@@ -239,27 +305,64 @@ export default class extends React.Component {
 													</FormGroup>
 												</Col>
 												<Col md="9">
-													<h3 className="text-center">Datos</h3>
 													<Col md="12">
 														<FormGroup row>
 															<Label md={2} for="lista_name">Nombre</Label>
-															<Col md={4}>
-																<Input type="text" id="lista_name" name="lista_name" placeholder="Ingrese nombre" value={this.state.lista_name} onChange={this.handleProcessData} />
+															<Col md={6}>
+																<Input type="text" id="lista_name" name="lista_name" placeholder="Ejemplo: FNU" value={this.state.lista_name} onChange={this.handleProcessData} />
 															</Col>
-															<Label md={2} for="lista_proceso">Proceso</Label>
-															<Col md={4}>
-																<Input type="select" id="lista_proceso" name="lista_proceso" value={this.state.lista_proceso} onChange={this.handleProcessData} >
-																	{this.renderOptProceso()}
-																</Input>
+															<Label md={2} for="lista_numero">Numero</Label>
+															<Col md={2}>
+																<Input type="text" id="lista_numero" name="lista_numero" placeholder="Ej: 54" value={this.state.lista_numero} onChange={this.handleProcessData} />
 															</Col>
 														</FormGroup></Col>
 													<Col md="12"> <FormGroup row>
 														<Label md={2} for="lista_eslogan">Eslogan</Label>
-														<Col md={10}>
+														<Col md={7}>
 															<Input type="text" id="lista_eslogan" name="lista_eslogan" placeholder="Ejemplo: 'Juntos Venceremos'" value={this.state.lista_eslogan} onChange={this.handleProcessData} />
 														</Col>
+														<Col md={3}>
+															<Button id='saveData' className='btn-block' color="info" type="submit">
+																Crear<span className="icon ion-ios-create ml-2"></span>
+															</Button>
+														</Col>
 													</FormGroup></Col>
+													{this.state.showCandid ? <Col >
+														<ReactTooltip place="right" effect="solid" />
+														<FormGroup row>
+															<Col md={11}><h4>Cargos</h4> </Col>
+															<Col md={1}><h4>
+																<span onClick={this.CerrarSelect} style={{ cursor: "pointer" }} className="text-info icon ion-md-close " data-tip="Cerrar" />
+															</h4></Col>
+															<Col md={4}>
+																<Label for="lista_presidente" >Presidente</Label>
+																<Select name="lista_presidente" id="lista_presidente"
+																	isDisabled={this.state.isDisabled1} value={this.state.selectedOption_Presi} onChange={this.handleChangePresi} options={this.state.options_cand} />
+															</Col>
+															<Col md={4}>
+																<Label for="lista_vicepresidente">Vicepresidente</Label>
+																<Select name="lista_vicepresidente" id="lista_vicepresidente"
+																	isDisabled={this.state.isDisabled2} value={this.state.selectedOption_VicePresi} onChange={this.handleChangeVice} options={this.state.options_cand} />
+															</Col>
+															<Col md={4}>
+																<Label for="lista_secretario">Tesorero</Label>
+																<Select name="lista_secretario" id="lista_secretario"
+																	isDisabled={this.state.isDisabled3} value={this.state.selectedOption_Secre} onChange={this.handleChangeSecre} options={this.state.options_cand} />
+															</Col>
+														</FormGroup>
+														<FormGroup className='d-flex align-items-center justify-content-center' row>
+															<Col md={4}>
+																<Button id='saveData' className='btn-block' color="success" type="submit">
+																	Guardar Todo<span className="icon ion-md-save ml-1"></span>
+																</Button>
+															</Col>
+															<Col md={1}>
+																<Button onClick={this.CleanSelect} id='clean' color="secondary" size="sm" data-tip="Limpiar" ><span className="icon ion-md-close" /></Button>
+															</Col>
+														</FormGroup>
+													</Col> : null}
 												</Col>
+
 											</Row>
 										</Form>
 									</CardBody>
@@ -293,64 +396,23 @@ export default class extends React.Component {
 }
 
 export class DignidadesModal extends React.Component {
-	constructor(props) {
-		super(props)
-		this.state = {
-			row_persona: [], id_persona: 0,
-			row_cargo_lis: [{ id: 1, nombre: 'Presidente' }, { id: 2, nombre: 'Vicepresidente' }, { id: 3, nombre: 'Secretario' }],
-		}
-		this.handleProcessData = this.handleProcessData.bind(this)
-	}
-
-	handleProcessData(e) {
-		const name = e.target.name;
-		const value = e.target.value;
-		this.setState({ [name]: value });
-	}
-
-	getPersona() {
-		fetch('/auth/getPersona', { credentials: 'include' })
-			.then(res => res.json())
-			.then(response => {
-				if (!response) return
-				this.setState({ row_persona: response.results })
-			})
-	}
-
-	renderOptPersona() {
-		return this.state.row_persona.map((row) => {
-			const { id_persona, nombres, apellidos } = row
-			return (<option key={id_persona} value={id_persona} >{nombres}{' '}{apellidos} </option>)
-		})
-	}
-
-	async componentDidMount() {
-		this.getPersona();
-	}
-
 	renderOpcDignid() {
 		const row_cad_l = this.props.state.row_listas_candid
-		return this.state.row_cargo_lis.map((row) => {
-			const { id, nombre } = row
-			const candid  = row_cad_l.find(x => x.cargo == nombre) 
-			const persona = (candid) ? candid.nombres+' '+ candid.apellidos : null;
-			const data = (persona) ? <span style={{ cursor: "pointer" }} className="text-info icon ion-md-settings" data-tip="Editar" />  : <span style={{ cursor: "pointer" }} className="text-info icon ion-md-person-add" data-tip="Agregar" /> ;
-			return (
-				<tr key={id} id={id}>
-					<td className="col-md-1">{id}</td>
-					<td className="col-md-5">{persona}</td>
-					<td className="col-md-4">{nombre}</td>
-					<td className="col-md-2">
-						<h4 className="ml-3" >
-							<ReactTooltip place="top" effect="solid" />
-							{data}
-						</h4>
-					</td>
-				</tr>
-			)
-		})
+		if (row_cad_l.length > 0) {
+			return this.props.state.row_cargo_lis.map((row) => {
+				const { id, nombre } = row
+				const candid = row_cad_l.find(x => x.cargo == nombre)
+				const persona = (candid) ? candid.nombres + ' ' + candid.apellidos : null;
+				return (
+					<tr key={id} id={id}>
+						<td className="col-md-2">{id}</td>
+						<td className="col-md-5">{nombre}</td>
+						<td className="col-md-5">{persona}</td>
+					</tr>
+				)
+			})
+		} else { return (<tr key={0} id={0}><td className="col-md-12">No hay ingresado los candidatos</td> </tr>) }
 	}
-
 
 	render() {
 		const state1 = this.props.state;
@@ -360,31 +422,25 @@ export class DignidadesModal extends React.Component {
 				<ModalHeader toggle={this.props.modalToggle} >Dignidades de {nombre_l} </ModalHeader>
 				<ModalBody>
 					<Container className="mt-2" >
-						{/* <FormGroup row className='float-right'>
-							<Label md={1} for="myInput">Buscar..</Label>
-              <Col md={4}>
-								<Input name="seacrh" id="myInput" type="text" placeholder="Buscar.." />{''}
-							</Col>
-						</FormGroup> */}
 						<table className='table table-hover table-fixed' >
 							<thead>
 								<tr>
-									<th className="col-md-1">#</th>
+									<th className="col-md-2">#</th>
+									<th className="col-md-5">Dignidad</th>
 									<th className="col-md-5">Persona</th>
-									<th className="col-md-4">Dignidad</th>
-									<th className="col-md-2">Opciones</th>
 								</tr>
 							</thead>
-							<tbody id="myTable">
+							<tbody id="myTable" >
 								{this.renderOpcDignid()}
 							</tbody>
 						</table>
 					</Container>
 				</ModalBody>
 				<ModalFooter>
-					<Button color="secondary" onClick={this.props.modalToggle}>Cancel</Button>
+					<Button color="secondary" onClick={this.props.modalToggle}>Regresar</Button>
 				</ModalFooter>
 			</Modal>
 		)
 	}
 }
+

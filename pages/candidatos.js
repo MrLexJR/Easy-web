@@ -24,7 +24,7 @@ export default class extends React.Component {
 		super(props)
 		this.state = {
 			lista_img: '/static/candidato_1.png', selectedFile: null,
-			row_cargo_lis: [{ id: 1, nombre: 'Presidente' }, { id: 2, nombre: 'Vicepresidente' }, { id: 3, nombre: 'Secretario' }],
+			row_cargo_lis: [{ id: 1, nombre: 'Presidente' }, { id: 2, nombre: 'Vicepresidente' }, { id: 3, nombre: 'Tesorero' }],
 			row_cargo_pro: [{ id: 1, nombre: 'Reina' }, { id: 2, nombre: 'Rey' }, { id: 3, nombre: 'Buffon' }],
 			rows_proceso: [], row_listas: [], row_persona: [], proc_activo: [],
 			id_persona: 0, id_proceso: 0, id_lista: 0, id_cargo: 0, cargo: '',
@@ -106,12 +106,12 @@ export default class extends React.Component {
 	}
 
 	renderOptCargo() {
-		if (this.state.proc_activo.tipo == 'Elecciones por Lista') {
+		if (this.state.proc_activo.tipo == 1) {
 			return this.state.row_cargo_lis.map((row) => {
 				const { id, nombre } = row
 				return (<option key={id} value={id} >{nombre}</option>)
 			})
-		} else if (this.state.proc_activo.tipo == 'Elecciones individaules') {
+		} else if (this.state.proc_activo.tipo == 2) {
 			return this.state.row_cargo_pro.map((row) => {
 				const { id, nombre } = row
 				return (<option key={id} value={id} >{nombre}</option>)

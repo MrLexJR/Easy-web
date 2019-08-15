@@ -158,11 +158,12 @@ export default class extends React.Component {
     if (this.state.rows_proceso.length > 0) {
       return this.state.rows_proceso.map((row) => {
         const { id_proceso, nombre, tipo, periodo, status } = row
+        const tipo_d = (tipo === 1) ? 'Elecciones por Lista' : 'Elecciones Individuales';
         const estado = (status === 1) ? <a href='#' onClick={this.handleProcesUpd(row)} className="badge badge-success">Activo</a> : <a href='#' className="badge  badge-secondary">Culminado</a>;
         return (
           <tr key={id_proceso} id={id_proceso}>
             <td className="col-md-4" >{nombre}</td>
-            <td className="col-md-3" >{tipo}</td>
+            <td className="col-md-3" >{tipo_d}</td>
             <td className="col-md-3">{periodo}</td>
             <td className="col-md-2">{estado}</td>
           </tr>
@@ -191,10 +192,11 @@ export default class extends React.Component {
   }
 
   handleProcessData(e) {
-    var index = e.nativeEvent.target.selectedIndex;
-    if (index) var text_op = e.nativeEvent.target[index].text;
+    // var index = e.nativeEvent.target.selectedIndex;
+    // if (index) var text_op = e.nativeEvent.target[index].text;
     const name = e.target.name;
-    const value = text_op || e.target.value;
+    const value = e.target.value;
+    // const value = text_op || e.target.value;
     this.setState({ [name]: value });
   }
 
@@ -249,7 +251,7 @@ export default class extends React.Component {
                           <Col md={2}>
                             <Input type="select" name="proc_periodo" id="proc_periodo" defaultValue={this.state.proc_periodo} onChange={this.handleProcessData} >
                               <option value={0} disabled>Escojer...</option>
-                              <option value={1}>Abril - Agosto 2019</option>
+                              <option value='Abril - Agosto 2019'>Abril - Agosto 2019</option>
                             </Input>
                           </Col>
                         </FormGroup></Col>
