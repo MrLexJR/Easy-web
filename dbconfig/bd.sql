@@ -126,7 +126,9 @@ CREATE VIEW viwe_lista_activa
     FROM lista_electoral as l, proceso_elec as pe WHERE l.id_proceso = pe.id_proceso AND pe.status = '1'  ORDER BY pe.nombre;
 
 CREATE VIEW view_pers_cand 
-    AS SELECT p1.id_persona, nombres, apellidos FROM persona p1 WHERE NOT EXISTS (SELECT NULL FROM candidato a1 WHERE a1.id_persona = p1.id_persona) AND NOT EXISTS (SELECT NULL FROM admin a2 WHERE a2.id_persona = p1.id_persona)
+    AS SELECT p1.id_persona, nombres, apellidos FROM persona p1 
+    WHERE NOT EXISTS (SELECT NULL FROM candidato a1 WHERE a1.id_persona = p1.id_persona) 
+    AND NOT EXISTS (SELECT NULL FROM admin a2 WHERE a2.id_persona = p1.id_persona)
 
 -- INSERTA EN PERSONA
 INSERT INTO persona (id_persona,nombres,apellidos,correo,contrasena) VALUES (1314675354,'Jonathan','Rivera','jrivera5354@utm.edu.ec',ENCRYPT('123'))

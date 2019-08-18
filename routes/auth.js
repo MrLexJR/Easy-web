@@ -123,9 +123,9 @@ module.exports = (server) => {
 
   server.post('/auth/saveCandidato',async (req,res) =>{
     if(req.session && req.session.loggedin){
-      const results1 = null
-      req.body.map((row)=>{
-        results1 = saveCandidato(row)
+      
+      const results1 = req.body.map((row)=>{
+        return saveCandidato(row)
       })
       if(results1 && results1.length > 0) {
         return res.json({ message: null, messageStyle: null, staus: 200 })
