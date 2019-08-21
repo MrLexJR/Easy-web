@@ -144,6 +144,25 @@ module.exports = (server) => {
     }
   }
 
+  server.post('/auth/deleteLista', async (req, res) => {
+    if (req.session && req.session.loggedin) {
+      const results = await deleteLista(req.body.id_lista)
+      if(results){
+        return res.json({ staus: 200 })
+      }else {
+        return res.json({ message: '<b>Error:</b>\n ', staus: 500 })
+      }
+    }
+  })
+
+  async function deleteLista(id){
+    try {
+      await pool.query(`DELETE FROM lista_electoral WHERE id_lista_e = '${id}';`)
+      return true
+    } catch (e) {
+      console.log(e)
+    }    
+  }
 
   server.get('/auth/getLista', async (req, res) => {
     const results = await getLista()
@@ -199,6 +218,24 @@ module.exports = (server) => {
     }
   }
 
+  server.get('/auth/getCandidatoProceso', async (req, res) => {
+    const results = await getCandidatoProceso()
+    if (results) {
+      return res.json({ results })
+    } else {
+      return res.status(500)
+    }
+  })
+
+  async function getCandidatoProceso() {
+    try {
+      const q = await pool.query(`SELECT * FROM view_candidato_proceso`)
+      return q[0]
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   server.post('/auth/getListaCandi', async (req, res) => {
     const id = req.body.id
     const results = await getListaCandi(id)
@@ -212,6 +249,31 @@ module.exports = (server) => {
   async function getListaCandi(id) {
     try {
       const q = await pool.query(`SELECT persona.id_persona, persona.nombres, persona.apellidos, candidato.cargo FROM candidato, persona WHERE candidato.id_persona = persona.id_persona AND candidato.id_lista_e = '${id}';`)
+      return q[0]
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  server.post('/auth/getResultados', async (req, res) => {
+    const id = req.body.id
+    const cargo = req.body.cargo
+    const results = await getResultados(id,cargo)
+    if (results) {
+      return res.json({ results })
+    } else {
+      return res.status(500)
+    }
+  })
+
+  async function getResultados(id,cargo) {
+    try {
+      const q = await pool.query(`SELECT can.id_candidato, vcp.id_persona,vcp.candidato, vcp.lista, vcp.cargo, COUNT(voto) 'c_voto' FROM  voto vtp 
+      INNER JOIN candidato can ON vtp.id_candidato = can.id_candidato AND can.cargo = '${cargo}'
+      INNER JOIN view_candidato_proceso vcp ON vcp.id_persona = can.id_persona 
+      INNER JOIN proceso_elec pel ON pel.id_proceso =  vtp.id_proceso  
+      AND pel.id_proceso = '${id}' 
+      GROUP BY can.id_candidato,vcp.id_candidato  ;`)
       return q[0]
     } catch (e) {
       console.error(e)

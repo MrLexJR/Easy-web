@@ -293,7 +293,7 @@ export default class extends React.Component {
                     </tbody>
                   </table>
                 </Container>
-                <p className="text-center lead m-2">Ud es {this.state.name} el best del sistema</p>
+                <p className="text-center lead m-2">Ud es {this.state.name} el admin del sistema</p>
               </Col>
             </Row>
           </Col>

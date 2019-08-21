@@ -54,13 +54,13 @@ export default class extends React.Component {
 
 	modalToggle() { this.setState(prevState => ({ modal: !prevState.modal })); }
 
-	CerrarSelect = () =>{
+	CerrarSelect = () => {
 		this.setState({ showCandid: false });
 	}
 
 	CleanSelect = () => {
 		this.setState(state => ({ isDisabled1: false, isDisabled2: false, isDisabled3: false, selectedOption_Presi: null, selectedOption_VicePresi: null, selectedOption_Secre: null, }));
-		this.getPersona();  
+		this.getPersonaCandidato();
 	}
 
 	handleChangePresi = selectedOption_Presi => {
@@ -85,13 +85,28 @@ export default class extends React.Component {
 		this.modalToggle(); this.getListaCandi(idx.id_lista);
 	}
 
+	updateLista = (idx) => () => {
+		this.getListaCandi(idx.id_lista)
+		if(this.state.row_listas_candid.length > 0 ){
+			Swal.fire('Hey', 'Los candidatos ya estan seleccionados!: ', 'info')
+			return
+		}
+		this.setState(state => ({ lista_name: idx.nombre, lista_eslogan: idx.eslogan, lista_numero: idx.numero }));
+		this.setState({ showCandid: true }); this.CleanSelect();
+		document.getElementById('lista_name').setAttribute("disabled", "disabled");
+		document.getElementById('lista_eslogan').setAttribute("disabled", "disabled");
+		document.getElementById('lista_numero').setAttribute("disabled", "disabled");
+	}
+
 	Clean = () => {
 		document.getElementById("lista-data").reset();
 		document.getElementById('lista_name').removeAttribute("disabled");
+		document.getElementById('lista_eslogan').removeAttribute("disabled");
+		document.getElementById('lista_numero').removeAttribute("disabled");
 		this.setState({
 			lista_img: '/static/part_polit.png', selectedFile: null,
 			lista_name: '', lista_eslogan: '', lista_numero: '',
-			message: null, messageStyle: null
+			message: null, messageStyle: null, showCandid: false
 		});
 	}
 
@@ -116,7 +131,7 @@ export default class extends React.Component {
 						if (res.staus == 200) {
 							this.getLista();
 							this.setState({ showCandid: true }); this.CleanSelect();
-							document.getElementById('lista_name').setAttribute("disabled", "disabled");
+							document.getElementById('lista_name').setAttribute("disabled", "disabled"); document.getElementById('lista_eslogan').setAttribute("disabled", "disabled"); document.getElementById('lista_numero').setAttribute("disabled", "disabled");
 							Swal.fire('Genial!', 'La lista ' + this.state.lista_name + ' agregado excitosamente!', 'success')
 						}
 					} else { this.setState({ message: 'Error al intentar guardar', messageStyle: 'alert-danger' }) }
@@ -138,7 +153,7 @@ export default class extends React.Component {
 					if (res) {
 						this.setState({ message: res.message, messageStyle: res.messageStyle })
 						if (res.staus == 200) {
-							this.Clean();this.CleanSelect();
+							this.Clean(); this.CleanSelect();
 							Swal.fire('Listo!', 'Los Candidatos se han agregado excitosamente!', 'success')
 						}
 					} else { this.setState({ message: 'Error al intentar guardar', messageStyle: 'alert-danger' }); return }
@@ -147,18 +162,37 @@ export default class extends React.Component {
 		}
 	}
 
-	updateLista = (idx) => () => {
-		console.log(idx.nombre)
-		this.setState( state => ( { lista_name: idx.nombre, lista_eslogan: idx.eslogan, lista_numero: idx.numero }));
-		// document.getElementById("lista_name").value = idx.nombre; 
-		// document.getElementById("lista_numero").value = idx.numero; 
-		// document.getElementById("lista_eslogan").value = idx.eslogan;
-		this.setState({ showCandid: true }); this.CleanSelect();
-		document.getElementById('lista_name').setAttribute("disabled", "disabled");
-	}
-
 	deleteLista = (idx) => () => {
-		console.log(idx)
+		let data = {
+			id_lista: idx.id_lista
+		}
+		MySwal.fire({
+			title: <p>¿Estas seguro?</p>,
+			text: "¡No podrás revertir esto!",
+			type: 'warning',
+			showCancelButton: true,
+			confirmButtonColor: '#3085d6',
+			cancelButtonColor: '#d33',
+			confirmButtonText: 'Si, elimarlo!',
+		}).then((result) => {
+			if (result.value) {
+				fetch('auth/deleteLista', {
+					method: 'POST',
+					body: JSON.stringify(data),
+					headers: { 'Content-Type': 'application/json' }
+				}).then(res => res.json())
+					.then(res => {
+						if (res.staus) {
+							this.getLista(); this.getPersonaCandidato();
+							if (res.staus == 200) {
+								Swal.fire('Listo!', 'La lista ' + idx.nombre + ' ha sido eliminado', 'success')
+							} else {
+								Swal.fire('Error', 'Hubon un error!: ' + res.message, 'error')
+							}
+						}
+					})
+			}
+		})
 	}
 
 	handleProcessData(e) {
@@ -178,10 +212,10 @@ export default class extends React.Component {
 			.then(res => res.json())
 			.then(response => {
 				if (!response) return
-				var x = response.results.find(x => x.status === 1 )
 				var c = response.results.find(x => x.status === 1 && x.tipo === 1);
 				var c1 = (c) ? c.id_proceso : 0;
-				this.setState({ lista_proceso: c1, nombre_proceso: x.nombre })
+				var n1 = (c) ? c.nombre : '';
+				this.setState({ lista_proceso: c1, nombre_proceso: n1 })
 				if (c1 == 0) {
 					this.setState({ message: 'El proceso no admite listas o no hay proceso activo', messageStyle: 'alert-danger' })
 					document.getElementById("saveData").disabled = true;
@@ -213,7 +247,7 @@ export default class extends React.Component {
 			})
 	}
 
-	getPersona() {
+	getPersonaCandidato() {
 		fetch('/auth/getPersonaCandidato', { credentials: 'include' })
 			.then(res => res.json())
 			.then(response => {
@@ -240,8 +274,8 @@ export default class extends React.Component {
 						<td className="col-md-2">
 							<h4>
 								<ReactTooltip place="right" effect="solid" />
-								<span onClick={this.dignidadesLista(row)} style={{ cursor: "pointer" }} className="text-dark icon ion-ios-people mr-2" data-tip="Dignidades" />
-								<span onClick={this.updateLista(row)} style={{ cursor: "pointer" }} className="text-info icon ion-md-settings mr-2" data-tip="Editar" />
+								<span onClick={this.dignidadesLista(row)} style={{ cursor: "pointer" }} className="text-dark icon ion-ios-people mr-2" data-tip="Ver Dignidades" />
+								<span onClick={this.updateLista(row)} style={{ cursor: "pointer" }} className="text-info icon ion-md-person-add mr-2" data-tip="Agregar Dignidades" />
 								<span onClick={this.deleteLista(row)} style={{ cursor: "pointer" }} className="text-danger icon ion-md-close-circle mr-1" data-tip="Eliminar" />
 							</h4>
 						</td>
@@ -253,7 +287,7 @@ export default class extends React.Component {
 
 
 	async componentDidMount() {
-		this.getProceso(); this.getLista(); this.getPersona();
+		this.getProceso(); this.getLista(); this.getPersonaCandidato();
 		window.onload = function () {
 			var fileupload = document.getElementById("imgPers");
 			var filePath = document.getElementById("spnFilePath");
@@ -281,12 +315,11 @@ export default class extends React.Component {
 		return (
 			<Layout {...this.props}>
 				<DignidadesModal state={this.state} modalToggle={this.modalToggle} />
-
 				<Row>
 					<Col>
-						<Row className="mt-2">
+						<Row className="mt-0">
 							<Col sm={{ size: 10, offset: 1 }} >
-								<Card className='m-1'>
+								<Card className='m-0'>
 									<CardBody>
 										<Form id="lista-data" onSubmit={this.saveLista} >
 											<FormGroup row>
@@ -326,6 +359,7 @@ export default class extends React.Component {
 																Crear<span className="icon ion-ios-create ml-2"></span>
 															</Button>
 														</Col>
+
 													</FormGroup></Col>
 													{this.state.showCandid ? <Col >
 														<ReactTooltip place="right" effect="solid" />
@@ -356,9 +390,15 @@ export default class extends React.Component {
 																	Guardar Todo<span className="icon ion-md-save ml-1"></span>
 																</Button>
 															</Col>
-															<Col md={1}>
-																<Button onClick={this.CleanSelect} id='clean' color="secondary" size="sm" data-tip="Limpiar" ><span className="icon ion-md-close" /></Button>
+															<Col md={3}>
+																<Button onClick={this.Clean} className='btn-block' id='clean' color="warning">
+																	Cancelar<span className="icon ion-md-close-circle ml-1" />
+																</Button>
 															</Col>
+															<Col md={1}>
+																<Button onClick={this.CleanSelect} id='clean' color="secondary" size="sm" data-tip="Limpiar" ><span className="icon ion-md-backspace" /></Button>
+															</Col>
+
 														</FormGroup>
 													</Col> : null}
 												</Col>
@@ -411,7 +451,7 @@ export class DignidadesModal extends React.Component {
 					</tr>
 				)
 			})
-		} else { return (<tr key={0} id={0}><td className="col-md-12">No hay ingresado los candidatos</td> </tr>) }
+		} else { return (<tr key={0} id={0}><td className="col-md-12">No hay ingresado los candidatos</td></tr>) }
 	}
 
 	render() {

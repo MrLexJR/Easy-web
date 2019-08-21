@@ -84,7 +84,7 @@ export default class extends React.Component {
                 <Col xs="4">
                   <span style={{ fontSize: '15vw' }} className="icon ion-md-stats"></span>
                   <p className=" text-muted">
-                    Consulta las  <a className='text-muted font-weight-bold' href='#'>estadisticas</a> del proceso.
+                    Consulta las  <a className='text-muted font-weight-bold' href='/resultados'>estadisticas</a> del proceso.
                     </p>
                 </Col>
               </Row>

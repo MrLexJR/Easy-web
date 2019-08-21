@@ -23,10 +23,12 @@ export default class extends React.Component {
 	constructor(props) {
 		super(props)
 		this.state = {
-			lista_img: '/static/candidato_1.png', selectedFile: null,
+			lista_img: '/static/candidato_1.png',
+			row_cargo: [],
 			row_cargo_lis: [{ id: 1, nombre: 'Presidente' }, { id: 2, nombre: 'Vicepresidente' }, { id: 3, nombre: 'Tesorero' }],
 			row_cargo_pro: [{ id: 1, nombre: 'Reina' }, { id: 2, nombre: 'Rey' }, { id: 3, nombre: 'Buffon' }],
-			rows_proceso: [], row_listas: [], row_persona: [], proc_activo: [],
+			row_listas: [], row_persona: [], proc_activo: [], candidato_proceso: [],
+			lista_proceso: 0, nombre_proceso: '', filtro_c: 0,
 			id_persona: 0, id_proceso: 0, id_lista: 0, id_cargo: 0, cargo: '',
 			message: null, messageStyle: null,
 		}
@@ -48,11 +50,11 @@ export default class extends React.Component {
 		this.setState({ message: null, messageStyle: null })
 	}
 
-	handleProcessData(e) {
-		const name = e.target.name;
-		const value = e.target.value;
-		this.setState({ [name]: value });
-	}
+		handleProcessData(e) {
+			const name = e.target.name;
+			const value = e.target.value;
+			this.setState({ [name]: value });
+		}
 
 	handleChangeImg(event) {
 		if (event.target.files[0]) {
@@ -65,8 +67,16 @@ export default class extends React.Component {
 			.then(res => res.json())
 			.then(response => {
 				if (!response) return
-				var c = response.results.find(x => x.status === 1)
-				this.setState({ rows_proceso: response.results, id_proceso: c.id_proceso, proc_activo: c })
+				var x = response.results.find(x => x.status === 1)							// Preguntamos si hay proceso activo 
+				var c1 = (x) ? x.id_proceso : 0;
+				var n1 = (x) ? x.nombre : '';
+				var t1 = (x) ? x.tipo : 0;
+				this.setState({ lista_proceso: c1, nombre_proceso: n1, proc_activo: x })
+				if (t1 == 1) { this.setState({ row_cargo: this.state.row_cargo_lis }) }
+				else { this.setState({ row_cargo: this.state.row_cargo_lis }) }
+				if (c1 == 2) {
+					document.getElementById("id_lista").disabled = true;
+				}
 			})
 	}
 
@@ -81,21 +91,59 @@ export default class extends React.Component {
 			})
 	}
 
-	getPersona() {
-		fetch('/auth/getPersona', { credentials: 'include' })
+	getPersonaCandidato() {
+		fetch('/auth/getPersonaCandidato', { credentials: 'include' })
 			.then(res => res.json())
 			.then(response => {
 				if (!response) return
-				this.setState({ row_persona: response.results })
+				this.setState({ row_persona: response.results, options_cand: [] })
+				response.results.map((row) => {
+					const { id_persona, nombres, apellidos } = row
+					const item = { value: id_persona, label: id_persona + ' - ' + nombres + ' ' + apellidos, data: nombres + ' ' + apellidos, isDisabled: false }
+					this.setState({ options_cand: [...this.state.options_cand, item] })
+				})
 			})
 	}
 
-	renderOptProceso() {
-		return this.state.rows_proceso.map((row) => {
-			const { id_proceso, status, nombre } = row
-			if (status === 1) { return (<option key={id_proceso} value={id_proceso} >{nombre}</option>) }
-			else { return (<option disabled key={id_proceso} value={id_proceso} >{nombre}</option>) }
-		})
+	getCandidatoProceso() {
+		fetch('/auth/getCandidatoProceso', { credentials: 'include' })
+			.then(res => res.json())
+			.then(response => {
+				if (!response) return
+				this.setState({ candidato_proceso: response.results })
+			})
+	}
+
+	renderTableCandidatoProceso() {
+		if (this.state.candidato_proceso.length > 0) {
+			var dta = this.state.candidato_proceso;
+			// var dta = []
+			if (this.state.id_cargo && this.state.filtro_c == 2) {
+				const cargo_1 = this.state.row_cargo.find(x => x.id == this.state.id_cargo);
+				dta = this.state.candidato_proceso.filter(function (x) { return x.cargo == cargo_1.nombre  });
+			}
+			if (this.state.id_lista && this.state.filtro_c == 1) {
+				const lista_1 = this.state.row_listas.find(x => x.id_lista == this.state.id_lista);
+				dta = this.state.candidato_proceso.filter(function (x) { return x.lista == lista_1.nombre  });
+			}
+			// data = (dta.length>0) ? dta :  data
+			return dta.map((row) => {
+				const { id_candidato, candidato, lista, cargo } = row
+				return (
+					<tr key={id_candidato} id={id_candidato}>
+						<td className="col-md-4">{lista}</td>
+						<td className="col-md-2">{cargo}</td>
+						<td className="col-md-4">{candidato}</td>
+						<td className="col-md-2">
+							<h4>
+								<ReactTooltip place="right" effect="solid" />
+								<span style={{ cursor: "pointer" }} className="text-info icon ion-md-information-circle ml-4" data-tip="Eliminar" />
+							</h4>
+						</td>
+					</tr>
+				)
+			})
+		} else { return (<tr key={0}><td className="col-md-12">No consta ningun candidato</td></tr>) }
 	}
 
 	renderOptLista() {
@@ -106,123 +154,111 @@ export default class extends React.Component {
 	}
 
 	renderOptCargo() {
-		if (this.state.proc_activo.tipo == 1) {
-			return this.state.row_cargo_lis.map((row) => {
-				const { id, nombre } = row
-				return (<option key={id} value={id} >{nombre}</option>)
-			})
-		} else if (this.state.proc_activo.tipo == 2) {
-			return this.state.row_cargo_pro.map((row) => {
+		if (this.state.proc_activo) {
+			return this.state.row_cargo.map((row) => {
 				const { id, nombre } = row
 				return (<option key={id} value={id} >{nombre}</option>)
 			})
 		}
-	}
-	renderOptPersona() {
-		return this.state.row_persona.map((row) => {
-			const { id_persona, nombres,apellidos } = row
-			return (<option key={id_persona} value={id_persona} >{nombres}{' '}{apellidos} </option>)
-		})
-	}
+}
 
-	async componentDidMount() {
-		this.getLista(); this.getPersona(); this.getProceso();
-		window.onload = function () {
-			var fileupload = document.getElementById("imgPers");
-			var filePath = document.getElementById("spnFilePath");
-			var image = document.getElementById("lista_img");
-			image.onclick = function () {
-				fileupload.click();
-			};
-			fileupload.onchange = function () {
-				var fileName = fileupload.value.split('\\')[fileupload.value.split('\\').length - 1];
-				filePath.innerHTML = "<b>Imagen: </b>" + fileName;
-			};
-		};
-		$(document).ready(function () {
-			$("#myInput").on("keyup", function () {
-				var value = $(this).val().toLowerCase();
-				$("#myTable tr").filter(function () {
-					$(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-				});
+
+async componentDidMount() {
+	this.getLista(); this.getPersonaCandidato(); this.getProceso(); this.getCandidatoProceso();
+
+	$(document).ready(function () {
+		$("#myInput").on("keyup", function () {
+			var value = $(this).val().toLowerCase();
+			$("#myTable tr").filter(function () {
+				$(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
 			});
 		});
-	}
+	});
+}
 
-	render() {
-		const alert = (this.state.message === null) ? <div /> : <div className={`text-center alert ${this.state.messageStyle}`} role="alert">{this.state.message}</div>
-		return (
-			<Layout {...this.props}>
-				<Row>
-					<Col>
-						<Row className="mt-2">
-							<Col sm={{ size: 10, offset: 1 }} >
-								<Card className='m-1'>
-									<CardBody>
-										<Form id="cand-data" onSubmit={this.saveCandid} >
-											<FormGroup row>
-												<Label md={10}><h4> Administrar Candidatos </h4></Label>
-												<Col md={2}>
+render() {
+	const alert = (this.state.message === null) ? <div /> : <div className={`text-center alert ${this.state.messageStyle}`} role="alert">{this.state.message}</div>
+	const buscar = (this.state.filtro_c == 0) ? <Input name="seacrh" id="myInput" type="text" placeholder="Buscar.." /> : (this.state.filtro_c == 1) ? <Input type="select" id="id_lista" name="id_lista" value={this.state.id_lista} onChange={this.handleProcessData} ><option value={0} disabled>Escojer...</option> {this.renderOptLista()} </Input> : <Input type="select" id="id_cargo" name="id_cargo" value={this.state.id_cargo} onChange={this.handleProcessData} ><option value={0} disabled>Escojer...</option>{this.renderOptCargo()}</Input>
+	return (
+		<Layout {...this.props}>
+			<Row>
+				<Col>
+					<Row className="mt-2">
+						<Col sm={{ size: 12, offset: 0 }} >
+							<Card className='m-1'>
+								<CardBody>
+									<Form id="cand-data" onSubmit={this.saveCandid} >
+										<FormGroup row>
+											<Label md={10}><h4> Administrar Candidatos <span className='text-info'>{this.state.nombre_proceso}</span> </h4></Label>
+											{/* <Col md={2}>
 													<Button id='saveData' className='btn-block' color="success" type="submit">
 														Guardar{' '}<span className="icon ion-md-save"></span>
 													</Button>
-												</Col>
-											</FormGroup>
-											<Row>
-												<Col md="3">
-													<FormGroup>
-														<Row >
-															<Col className='d-flex align-items-center justify-content-center contImg'>
-																<img style={{ cursor: "pointer" }} id="lista_img" alt="Click para Seleccionar" title="Click para Seleccionar" className='rounded' src={this.state.lista_img} />
-															</Col>
-														</Row>
-														<p className="text-center" id="spnFilePath"></p>
-														<Input style={{ display: "none" }} onChange={this.handleChangeImg} accept="image/x-png,image/gif,image/jpeg" type="file" id="imgPers" name="imgPers" />
-													</FormGroup>
-												</Col>
-												<Col md="9">
-													<h3 className="text-center">Datos</h3>
-													<Col md="12"><FormGroup row>
-														<Label md={2} for="id_persona">Persona</Label>
-														<Col md={4}>
-															<Input type="select" id="id_persona" name="id_persona" value={this.state.id_persona} onChange={this.handleProcessData} >
-																<option value={0} disabled>Escojer...</option>
-																{this.renderOptPersona()}
-															</Input>
-														</Col>
-														<Label md={2} for="id_cargo">Cargo</Label>
-														<Col md={4}>
+												</Col> */}
+										</FormGroup>
+										<Row>
+											<Col md="12">
+												{/* <Col md="12"><FormGroup row>
+														<Label md={1} for="id_cargo">Cargo</Label>
+														<Col md={3}>
 															<Input type="select" id="id_cargo" name="id_cargo" value={this.state.id_cargo} onChange={this.handleProcessData} >
 																<option value={0} disabled>Escojer...</option>
 																{this.renderOptCargo()}
 															</Input>
 														</Col>
-													</FormGroup></Col>
-													<Col md="12"><FormGroup row>
-														<Label md={2} for="id_proceso">Proceso</Label>
-														<Col md={4}>
-															<Input type="select" id="id_proceso" name="id_proceso" value={this.state.id_proceso} onChange={this.handleProcessData} >
-																{this.renderOptProceso()}
-															</Input>
-														</Col>
-														<Label md={2} for="id_lista">Lista</Label>
-														<Col md={4}>
+														<Label md={1} for="id_lista">Lista</Label>
+														<Col md={3}>
 															<Input type="select" id="id_lista" name="id_lista" value={this.state.id_lista} onChange={this.handleProcessData} >
 																<option value={0} disabled>Escojer...</option>
 																{this.renderOptLista()}
 															</Input>
 														</Col>
-													</FormGroup></Col>
-												</Col>
-											</Row>
-										</Form>
-									</CardBody>
-								</Card>
-							</Col>
-						</Row>
-					</Col>
-				</Row>
-			</Layout>
-		)
-	}
+														<Label md={1} for="id_persona">Persona</Label>
+														<Col md={3}>
+															<Input type="select" id="id_persona" name="id_persona" value={this.state.id_persona} onChange={this.handleProcessData} >
+																<option value={0} disabled>Escojer...</option>
+															</Input>
+														</Col>
+													</FormGroup></Col> */}
+												{alert}
+												<Container className="mt-2" >
+													<FormGroup className="m-2 mr-sm-2 mb-sm-2" row>
+														<Col md={7} >
+															{buscar}
+														</Col>
+														<Label md={1} for="filtro_c">Filtrado</Label>
+														<Col md={4}>
+															<Input type="select" id="filtro_c" name="filtro_c" value={this.state.filtro_c} onChange={this.handleProcessData} >
+																<option value={0} >Todos</option>
+																<option value={1} >Lista</option>
+																<option value={2} >Cargo</option>
+															</Input>
+														</Col>
+													</FormGroup>
+													<table className='table table-hover table-fixed ' >
+														<thead>
+															<tr>
+																<th className="col-md-4">Lista</th>
+																<th className="col-md-2">Cargo</th>
+																<th className="col-md-4">Candidato</th>
+																<th className="col-md-2">Opciones</th>
+															</tr>
+														</thead>
+														<tbody style={{ height: '400px' }} id="myTable">
+															{this.renderTableCandidatoProceso()}
+														</tbody>
+													</table>
+												</Container>
+											</Col>
+										</Row>
+									</Form>
+								</CardBody>
+							</Card>
+						</Col>
+					</Row>
+				</Col>
+			</Row>
+		</Layout>
+	)
+}
 }
